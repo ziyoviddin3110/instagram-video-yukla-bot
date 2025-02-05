@@ -10,19 +10,14 @@ def download_instagram_content(url):
         post = instaloader.Post.from_shortcode(loader.context, url.split("/")[-2])
         
         # Yuklangan fayllarni saqlash uchun papka yaratish
-        if not os.path.exists("downloads"):
-            os.mkdir("downloads")
+        download_folder = "downloads"
+        if not os.path.exists(download_folder):
+            os.mkdir(download_folder)
 
-        if post.is_video:  # Agar video bo'lsa
-            loader.download_post(post, target="downloads")
-            for file in os.listdir("downloads"):
-                if file.endswith(".mp4"):
-                    return os.path.join("downloads", file)
-        else:  # Agar rasm bo'lsa
-            loader.download_post(post, target="downloads")
-            for file in os.listdir("downloads"):
-                if file.endswith(".jpg"):
-                    return os.path.join("downloads", file)
+        loader.download_post(post, target=download_folder)
+        
+        files = [os.path.join(download_folder, f) for f in os.listdir(download_folder) if f.endswith(('.mp4', '.jpg'))]
+        return files
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -40,20 +35,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if "instagram.com" in url:  # Havola Instagramdan ekanligini tekshirish
         await update.message.reply_text("Iltimos, kuting. Yuklab olayapman...")
-        file_path = download_instagram_content(url)
-        if file_path:
-            await update.message.reply_text("Mana, yuklab olindi:")
-            await update.message.reply_document(document=open(file_path, 'rb'))
+        file_paths = download_instagram_content(url)
+        if file_paths:
+            for file_path in file_paths:
+                await update.message.reply_document(document=open(file_path, 'rb'))
+                os.remove(file_path)  # Yuklangan faylni o‘chirish
             
-            # Yuklangan faylni o'chirish
-            os.remove(file_path)
+            # Papkani tozalash
+            download_folder = "downloads"
+            if os.path.exists(download_folder) and not os.listdir(download_folder):
+                os.rmdir(download_folder)
         else:
             await update.message.reply_text("Kechirasiz, yuklashda xatolik yuz berdi yoki noto‘g‘ri havola yubordingiz.")
     else:
         await update.message.reply_text("Bu Instagram havolasiga o‘xshamaydi. Iltimos, to‘g‘ri havola yuboring.")
 
 # Telegram bot tokeni
-TOKEN = "7756735190:AAFhT2oRULXHi0gXFd3LWUraE-Fa2R5AdKQ"
+TOKEN = "7921541272:AAEOGb_5kK2oOo5jTfP9Wr5WSts4beGizEM"
 
 if __name__ == "__main__":
     # Botni ishga tushirish
